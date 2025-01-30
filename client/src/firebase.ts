@@ -1,5 +1,10 @@
 import { initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
+import {
+  getAuth,
+  GoogleAuthProvider,
+  signInWithPopup,
+  signOut,
+} from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
@@ -12,6 +17,19 @@ const firebaseConfig = {
   measurementId: "G-PLJ8E1QJJV",
 };
 
+// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
+
+// Google Login
+const provider = new GoogleAuthProvider();
+
+export const loginWithGoogle = () => {
+  return signInWithPopup(auth, provider);
+};
+
+// Logout
+export const logout = () => {
+  return signOut(auth);
+};

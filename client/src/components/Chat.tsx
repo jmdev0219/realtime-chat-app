@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import useSocket from "../hooks/useSocket";
 import { db } from "../firebase";
 import {
@@ -7,12 +7,15 @@ import {
   query,
   orderBy,
   onSnapshot,
+  serverTimestamp,
 } from "firebase/firestore";
+import { AuthContext } from "../context/AuthContext";
 
 const Chat = () => {
   const [messages, setMessages] = useState<unknown[]>([]);
   const [message, setMessage] = useState("");
-  const socket = useSocket("/socket.io");
+  const socket = useSocket("http://localhost:4000");
+  const { user, logout } = useContext(AuthContext);
 
   useEffect(() => {
     const q = query(collection(db, "messages"), orderBy("timestamp"));
@@ -23,10 +26,16 @@ const Chat = () => {
   }, []);
 
   const sendMessage = async () => {
+    if (!user) return alert("You must be logged in to send messages!");
+
     const newMessage = {
       text: message,
-      timestamp: new Date(),
+      userName: user.displayName,
+      userEmail: user.email,
+      userPhoto: user.photoURL,
+      timestamp: serverTimestamp(),
     };
+
     await addDoc(collection(db, "messages"), newMessage);
     socket?.current?.emit("send_message", newMessage);
     setMessage("");
@@ -38,11 +47,32 @@ const Chat = () => {
 
   return (
     <div className="p-4">
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-xl font-bold">Welcome, {user?.displayName}</h1>
+        <button
+          className="px-4 py-2 bg-red-500 text-white rounded"
+          onClick={logout}
+        >
+          Logout
+        </button>
+      </div>
       <div className="h-96 overflow-y-scroll bg-gray-100 rounded-lg p-4">
         {messages.map((msg, index) => (
-          <p key={index} className="bg-white p-2 mb-2 rounded shadow">
-            {msg.text}
-          </p>
+          <div
+            key={index}
+            className="bg-white p-2 mb-2 rounded shadow flex items-center"
+          >
+            {msg.userPhoto && (
+              <img
+                src={msg.userPhoto}
+                alt={msg.userName}
+                className="w-8 h-8 rounded-full mr-2"
+              />
+            )}
+            <div>
+              <strong>{msg.userName || "Anonymous"}:</strong> {msg.text}
+            </div>
+          </div>
         ))}
       </div>
       <div className="flex mt-4">
